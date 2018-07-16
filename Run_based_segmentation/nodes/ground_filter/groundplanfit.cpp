@@ -21,6 +21,7 @@
 #include <pcl_ros/point_cloud.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/filters/filter.h>
+#include <pcl/filters/passthrough.h>
 #include <pcl/point_types.h>
 #include <velodyne_pointcloud/point_types.h>
 #define VPoint velodyne_pointcloud::PointXYZIR
@@ -67,10 +68,12 @@ private:
     int sensor_model_;
     double sensor_height_;
     int num_seg_;
+    int num_seg_y_;
     int num_iter_;
     int num_lpr_;
     double th_seeds_;
     double th_dist_;
+    double half_road_width_;
 
 
     void velodyne_callback_(const sensor_msgs::PointCloud2ConstPtr& laserCloudMsg);
@@ -96,16 +99,22 @@ GroundPlaneFit::GroundPlaneFit():node_handle_("~"){
     node_handle_.param<std::string>("point_topic", point_topic_, "/velodyne_points");
     ROS_INFO("Input Point Cloud: %s", point_topic_.c_str());
 
+    node_handle_.param("half_road_width", half_road_width_, 15.0);
+    ROS_INFO("Road Width: %f", half_road_width_*2);
+
     node_handle_.param("sensor_model", sensor_model_, 64);
     ROS_INFO("Sensor Model: %d", sensor_model_);
 
     node_handle_.param("sensor_height", sensor_height_, 1.8);
     ROS_INFO("Sensor Height: %f", sensor_height_);
 
-    node_handle_.param("num_seg", num_seg_, 3);
-    ROS_INFO("Num of Segments: %d", num_seg_);
+    node_handle_.param("num_seg", num_seg_, 10);
+    ROS_INFO("Num of Segments Forward: %d", num_seg_);
 
-    node_handle_.param("num_iter", num_iter_, 10);
+    node_handle_.param("num_seg_y", num_seg_y_, 5);
+    ROS_INFO("Num of Segments Left-right: %d", num_seg_y_);
+
+    node_handle_.param("num_iter", num_iter_, 3);
     ROS_INFO("Num of Iteration: %d", num_iter_);
 
     node_handle_.param("num_lpr", num_lpr_, 20);
@@ -114,7 +123,7 @@ GroundPlaneFit::GroundPlaneFit():node_handle_("~"){
     node_handle_.param("th_seeds", th_seeds_, 0.2);
     ROS_INFO("Seeds Threshold: %f", th_seeds_);
 
-    node_handle_.param("th_dist", th_dist_, 0.2);
+    node_handle_.param("th_dist", th_dist_, 0.1);
     ROS_INFO("Distance Threshold: %f", th_dist_);
 
     // Listen to velodyne topic
@@ -230,62 +239,94 @@ void GroundPlaneFit::extract_initial_seeds_(const pcl::PointCloud<VPoint>& p_sor
 */
 void GroundPlaneFit::velodyne_callback_(const sensor_msgs::PointCloud2ConstPtr& in_cloud_msg){
     // 1.Msg to pointcloud
-    pcl::PointCloud<VPoint> laserCloudIn;
-    pcl::fromROSMsg(*in_cloud_msg, laserCloudIn);
+    pcl::PointCloud<VPoint>::Ptr laserCloudIn (new pcl::PointCloud<VPoint>);
+    pcl::fromROSMsg(*in_cloud_msg, *laserCloudIn);
     std::vector<int> indices;
-    pcl::removeNaNFromPointCloud(laserCloudIn, laserCloudIn,indices);
+    pcl::removeNaNFromPointCloud(*laserCloudIn, *laserCloudIn,indices);
     // 2.Sort on Z-axis value.
-    sort(laserCloudIn.points.begin(),laserCloudIn.end(),point_cmp);
+    sort(laserCloudIn->points.begin(),laserCloudIn->end(),point_cmp);
     // 3.Error point removal
     // As there are some error mirror reflection under the ground, 
     // here regardless point under 2* sensor_height
     // Sort point according to height, here uses z-axis in default
-    pcl::PointCloud<VPoint>::iterator it = laserCloudIn.points.begin();
-    for(int i=0;i<laserCloudIn.points.size();i++){
-        if(laserCloudIn.points[i].z < -1.5*sensor_height_){
+    pcl::PointCloud<VPoint>::iterator it = laserCloudIn->points.begin();
+    for(int i=0;i<laserCloudIn->points.size();i++){
+        if(laserCloudIn->points[i].z < -1.5*sensor_height_){
             it++;
         }else{
             break;
         }
     }
-    laserCloudIn.points.erase(laserCloudIn.points.begin(),it);
-    // 4. Extract init ground seeds.
-    extract_initial_seeds_(laserCloudIn);
-    g_ground_pc = g_seeds_pc;
-    
-    // 5. Ground plane fitter mainloop
-    for(int i=0;i<num_iter_;i++){
-        estimate_plane_();
-        g_ground_pc->clear();
-        g_not_ground_pc->clear();
+    laserCloudIn->points.erase(laserCloudIn->points.begin(),it);
 
-        //pointcloud to matrix
-        MatrixXf points(laserCloudIn.points.size(),3);
-        int j =0;
-        for(auto p:laserCloudIn.points){
-            points.row(j++)<<p.x,p.y,p.z;
-        }
-        // ground plane model
-        VectorXf result = points*normal_;
-        // threshold filter
-        for(int r=0;r<result.rows();r++){
-            if(result[r]<th_dist_d_){
-                g_ground_pc->points.push_back(laserCloudIn[r]);
-            }else{
-                g_not_ground_pc->points.push_back(laserCloudIn[r]);
+    // // Chop off points that are more than 50m away from the sensor
+    // pcl::PassThrough<VPoint> pass;
+    // pass.setInputCloud(laserCloudIn);
+    // pass.setFilterFieldName ("x");
+    // pass.setFilterLimits (-50.0, 50.0);
+    // pass.filter (*laserCloudIn);
+
+
+    pcl::PointCloud<VPoint> not_ground_pc;
+    pcl::PointCloud<VPoint> ground_pc;
+
+    float seg_step = 100.0/num_seg_;
+    float seg_step_y = 2.0*half_road_width_/num_seg_y_;
+    for (int seg_x = 0; seg_x < num_seg_; seg_x++)
+    {
+        for(int seg_y = 0; seg_y < num_seg_y_; seg_y++)
+        {
+            pcl::PointCloud<VPoint>::Ptr seg_laserCloudIn (new pcl::PointCloud<VPoint>);
+            pcl::PassThrough<VPoint> seg_pass;
+            seg_pass.setInputCloud(laserCloudIn);
+            seg_pass.setFilterFieldName("x");
+            seg_pass.setFilterLimits(-50.0+seg_step*seg_x, -50.0+seg_step*(seg_x+1));
+            seg_pass.filter(*seg_laserCloudIn);
+
+            seg_pass.setInputCloud(seg_laserCloudIn);
+            seg_pass.setFilterFieldName("y");
+            seg_pass.setFilterLimits(-half_road_width_+seg_step_y*seg_y, -half_road_width_+seg_step_y*(seg_y+1));
+            seg_pass.filter(*seg_laserCloudIn);
+            // 4. Extract init ground seeds.
+            extract_initial_seeds_(*seg_laserCloudIn);
+            g_ground_pc = g_seeds_pc;
+            
+            // 5. Ground plane fitter mainloop
+            for(int i=0;i<num_iter_;i++){
+                estimate_plane_();
+                g_ground_pc->clear();
+                g_not_ground_pc->clear();
+
+                //pointcloud to matrix
+                MatrixXf points(seg_laserCloudIn->points.size(),3);
+                int j =0;
+                for(auto p:seg_laserCloudIn->points){
+                    points.row(j++)<<p.x,p.y,p.z;
+                }
+                // ground plane model
+                VectorXf result = points*normal_;
+                // threshold filter
+                for(int r=0;r<result.rows();r++){
+                    if(result[r]<th_dist_d_){
+                        g_ground_pc->points.push_back(seg_laserCloudIn->points[r]);
+                    }else{
+                        g_not_ground_pc->points.push_back(seg_laserCloudIn->points[r]);
+                    }
+                }
             }
+            ground_pc += *g_ground_pc;
+            not_ground_pc += *g_not_ground_pc;
         }
     }
-
     // publish ground points
     sensor_msgs::PointCloud2 ground_msg;
-    pcl::toROSMsg(*g_ground_pc, ground_msg);
+    pcl::toROSMsg(ground_pc, ground_msg);
     ground_msg.header.stamp = in_cloud_msg->header.stamp;
     ground_msg.header.frame_id = in_cloud_msg->header.frame_id;
     ground_points_pub_.publish(ground_msg);
     // publish not ground points
     sensor_msgs::PointCloud2 groundless_msg;
-    pcl::toROSMsg(*g_not_ground_pc, groundless_msg);
+    pcl::toROSMsg(not_ground_pc, groundless_msg);
     groundless_msg.header.stamp = in_cloud_msg->header.stamp;
     groundless_msg.header.frame_id = in_cloud_msg->header.frame_id;
     groundless_points_pub_.publish(groundless_msg);

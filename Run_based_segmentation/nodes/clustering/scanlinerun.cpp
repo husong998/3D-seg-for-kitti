@@ -122,7 +122,7 @@ ScanLineRun::ScanLineRun():node_handle_("~"){
         line_run_idx_.push_back(idx_item);
     }
 
-    node_handle_.param("th_run", th_run_, 1.1);
+    node_handle_.param("th_run", th_run_, 1.0);
     ROS_INFO("Point-to-Run Threshold: %f", th_run_);
 
     node_handle_.param("th_merge", th_merge_, 0.5);

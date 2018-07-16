@@ -162,7 +162,7 @@ void publish_kitti_pcd::publish_pcd_(const char* fp)
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "Publish_KITTI");
+  ros::init(argc, argv, "publish_kitti");
   // for (int i=0; i < 4; i++)
     // ROS_INFO("%s ", argv[1]);
   if (argc < 3) 
