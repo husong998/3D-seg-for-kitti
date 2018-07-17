@@ -225,6 +225,11 @@ void ScanLineRun::update_labels_(int scan_line){
         // cout<<"i:"<<i<<" ";
         *run_above += *(runs_[run_id_above_line-1]);
     }
+    if (scan_line>1)
+        for(auto run_id_above_line:line_run_idx_[scan_line-2]){
+            // cout<<"i:"<<i<<" ";
+            *run_above += *(runs_[run_id_above_line-1]);
+        }
     // Octree search
     float resolution = 32.0f;
     pcl::octree::OctreePointCloudSearch<SLRPointXYZIRL> octree(resolution);
