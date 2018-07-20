@@ -56,8 +56,8 @@ private:
 
 pub_bbox::pub_bbox():nh_("~")
 {
-	sub_ = nh_.subscribe("/slr", 110, &pub_bbox::callback_, this);
-	bbox_pub_ = nh_.advertise<jsk_recognition_msgs::BoundingBoxArray>("/bboxes", 110);
+	sub_ = nh_.subscribe("/slr1", 110, &pub_bbox::callback_, this);
+	bbox_pub_ = nh_.advertise<jsk_recognition_msgs::BoundingBoxArray>("/bboxes1", 110);
 }
 
 void pub_bbox::callback_(sensor_msgs::PointCloud2 cloud_in_msg)
@@ -115,7 +115,7 @@ void pub_bbox::callback_(sensor_msgs::PointCloud2 cloud_in_msg)
 
 int main(int argc, char *argv[])
 {
-  	ros::init(argc, argv, "show_bbox");
+  	ros::init(argc, argv, "show_bbox1");
   	pub_bbox clusters;
   	ros::spin();
 	return 0;

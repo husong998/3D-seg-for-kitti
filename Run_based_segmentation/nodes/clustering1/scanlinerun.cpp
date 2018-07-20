@@ -125,7 +125,7 @@ ScanLineRun::ScanLineRun():node_handle_("~"){
     node_handle_.param("th_run", th_run_, 0.5);
     ROS_INFO("Point-to-Run Threshold: %f", th_run_);
 
-    node_handle_.param("th_merge", th_merge_, 1.0);
+    node_handle_.param("th_merge", th_merge_, 0.5);
     ROS_INFO("RUN-to-RUN Distance Threshold: %f", th_merge_);
 
     // Listen to velodyne topic
@@ -133,7 +133,7 @@ ScanLineRun::ScanLineRun():node_handle_("~"){
     
     // Publish Init
     std::string cluster_topic, ring_topic;
-    node_handle_.param<std::string>("cluster", cluster_topic, "/slr");
+    node_handle_.param<std::string>("cluster", cluster_topic, "/slr1");
     ROS_INFO("Cluster Output Point Cloud: %s", cluster_topic.c_str());
     // node_handle_.param<std::string>("ring_point_topic_for_debug", ring_topic, "/ring");
     // ROS_INFO("ring_point_topic_for_debug Output Point Cloud: %s", ring_topic.c_str());
@@ -469,7 +469,7 @@ void ScanLineRun::velodyne_callback_(const sensor_msgs::PointCloud2ConstPtr& in_
 int main(int argc, char **argv)
 {
 
-    ros::init(argc, argv, "ScanLineRun");
+    ros::init(argc, argv, "ScanLineRun1");
     ScanLineRun node;
     ros::spin();
 

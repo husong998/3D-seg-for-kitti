@@ -58,4 +58,16 @@ target_link_libraries(scanlinerun
 	${PCL_LIBRARIES}
 )
 
+add_executable(scanlinerun1 
+	nodes/clustering1/scanlinerun.cpp
+)
+
+target_include_directories(scanlinerun1 PRIVATE
+	${PCL_INCLUDE_DIRS}
+)
+
+target_link_libraries(scanlinerun1
+	${catkin_LIBRARIES}
+	${PCL_LIBRARIES}
+)
 

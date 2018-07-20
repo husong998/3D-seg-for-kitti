@@ -157,6 +157,11 @@ target_link_libraries(${PROJECT_NAME}_node
   ${PCL_LIBRARIES}
 )
 
+add_executable(${PROJECT_NAME}_node1 show_bbox1.cpp)
+target_link_libraries(${PROJECT_NAME}_node1
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
 #############
 ## Install ##
 #############
