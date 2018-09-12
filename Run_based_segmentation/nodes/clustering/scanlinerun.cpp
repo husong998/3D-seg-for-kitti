@@ -34,6 +34,8 @@
 
 #include <pcl/io/pcd_io.h>
 #include <boost/format.hpp>
+#include <ctime>
+
 using namespace std;
 
 //Customed Point Struct for holding clustered points
@@ -138,9 +140,9 @@ ScanLineRun::ScanLineRun():node_handle_("~"){
     // node_handle_.param<std::string>("ring_point_topic_for_debug", ring_topic, "/ring");
     // ROS_INFO("ring_point_topic_for_debug Output Point Cloud: %s", ring_topic.c_str());
     
-    cluster_points_pub_ = node_handle_.advertise<sensor_msgs::PointCloud2 >(cluster_topic, 10);
+    cluster_points_pub_ = node_handle_.advertise<sensor_msgs::PointCloud2 >(cluster_topic, 10, true);
     // ground_points_pub_ = node_handle_.advertise<sensor_msgs::PointCloud2>(ring_topic, 2);
-    marker_array_pub_ = node_handle_.advertise<visualization_msgs::MarkerArray>("cluster_ma", 10);
+    marker_array_pub_ = node_handle_.advertise<visualization_msgs::MarkerArray>("cluster_ma", 10, true);
 }
 
 
@@ -379,6 +381,9 @@ int tab=0;
     ->error points removal -> extract ground seeds -> ground plane fit mainloop
 */
 void ScanLineRun::velodyne_callback_(const sensor_msgs::PointCloud2ConstPtr& in_cloud_msg){
+    clock_t start, end;
+    start = clock();
+
     // Msg to pointcloud
     pcl::PointCloud<VPoint> laserCloudIn;
     pcl::fromROSMsg(*in_cloud_msg, laserCloudIn);
@@ -464,6 +469,10 @@ void ScanLineRun::velodyne_callback_(const sensor_msgs::PointCloud2ConstPtr& in_
 #ifdef IO
     tab++;
 #endif
+
+    end = clock();
+    float runTime = ((float) (end - start)) / CLOCKS_PER_SEC;
+    ROS_INFO("Scan line run: %f seconds\n", runTime);
 }
 
 int main(int argc, char **argv)

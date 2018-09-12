@@ -138,9 +138,9 @@ ScanLineRun::ScanLineRun():node_handle_("~"){
     // node_handle_.param<std::string>("ring_point_topic_for_debug", ring_topic, "/ring");
     // ROS_INFO("ring_point_topic_for_debug Output Point Cloud: %s", ring_topic.c_str());
     
-    cluster_points_pub_ = node_handle_.advertise<sensor_msgs::PointCloud2 >(cluster_topic, 10);
+    cluster_points_pub_ = node_handle_.advertise<sensor_msgs::PointCloud2 >(cluster_topic, 10, true);
     // ground_points_pub_ = node_handle_.advertise<sensor_msgs::PointCloud2>(ring_topic, 2);
-    marker_array_pub_ = node_handle_.advertise<visualization_msgs::MarkerArray>("cluster_ma", 10);
+    marker_array_pub_ = node_handle_.advertise<visualization_msgs::MarkerArray>("cluster_ma", 10, true);
 }
 
 

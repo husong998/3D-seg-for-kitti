@@ -57,7 +57,7 @@ private:
 pub_bbox::pub_bbox():nh_("~")
 {
 	sub_ = nh_.subscribe("/slr1", 110, &pub_bbox::callback_, this);
-	bbox_pub_ = nh_.advertise<jsk_recognition_msgs::BoundingBoxArray>("/bboxes1", 110);
+	bbox_pub_ = nh_.advertise<jsk_recognition_msgs::BoundingBoxArray>("/bboxes1", 110, true);
 }
 
 void pub_bbox::callback_(sensor_msgs::PointCloud2 cloud_in_msg)

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(show_bbox)
+project(filter_bbox)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
@@ -12,10 +12,10 @@ find_package(catkin REQUIRED COMPONENTS
 	pcl_ros
 	pcl_conversions
 	jsk_recognition_msgs
+  	velodyne_pointcloud
 	)
 
-find_package(PCL 1.8 REQUIRED)
-
+find_package(OpenCV REQUIRED)
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -107,10 +107,11 @@ find_package(PCL 1.8 REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES show_bbox
- CATKIN_DEPENDS 
+#  LIBRARIES filter_bbox
+ CATKIN_DEPENDS
  sensor_msgs
  jsk_recognition_msgs
+ velodyne_pointcloud
 #  DEPENDS system_lib
 )
 
@@ -122,13 +123,13 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
 # include
-Eigen
 ${catkin_INCLUDE_DIRS}
+${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/show_bbox.cpp
+#   src/${PROJECT_NAME}/filter_bbox.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -139,7 +140,7 @@ ${catkin_INCLUDE_DIRS}
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME}_node show_bbox.cpp)
+add_executable(${PROJECT_NAME}_node filter_bbox.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -155,19 +156,9 @@ add_executable(${PROJECT_NAME}_node show_bbox.cpp)
 target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
+  ${OpenCV_LIBS}
 )
 
-add_executable(${PROJECT_NAME}_node1 show_bbox1.cpp)
-target_link_libraries(${PROJECT_NAME}_node1
-  ${catkin_LIBRARIES}
-  ${PCL_LIBRARIES}
-)
-
-add_executable(${PROJECT_NAME}_node2 show_bbox2.cpp)
-target_link_libraries(${PROJECT_NAME}_node2
-  ${catkin_LIBRARIES}
-  ${PCL_LIBRARIES}
-)
 #############
 ## Install ##
 #############
@@ -208,11 +199,12 @@ target_link_libraries(${PROJECT_NAME}_node2
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_show_bbox.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_filter_bbox.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
 set(CMAKE_BUILD_TYPE Debug)

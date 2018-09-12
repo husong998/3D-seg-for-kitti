@@ -135,8 +135,8 @@ GroundPlaneFit::GroundPlaneFit():node_handle_("~"){
     ROS_INFO("No Ground Output Point Cloud: %s", no_ground_topic.c_str());
     node_handle_.param<std::string>("ground_point_topic", ground_topic, "/points_ground");
     ROS_INFO("Only Ground Output Point Cloud: %s", ground_topic.c_str());
-    groundless_points_pub_ = node_handle_.advertise<sensor_msgs::PointCloud2>(no_ground_topic, 2);
-    ground_points_pub_ = node_handle_.advertise<sensor_msgs::PointCloud2>(ground_topic, 2);
+    groundless_points_pub_ = node_handle_.advertise<sensor_msgs::PointCloud2>(no_ground_topic, 2, true);
+    ground_points_pub_ = node_handle_.advertise<sensor_msgs::PointCloud2>(ground_topic, 2, true);
  
 }
 
@@ -238,6 +238,8 @@ void GroundPlaneFit::extract_initial_seeds_(const pcl::PointCloud<VPoint>& p_sor
     ->error points removal -> extract ground seeds -> ground plane fit mainloop
 */
 void GroundPlaneFit::velodyne_callback_(const sensor_msgs::PointCloud2ConstPtr& in_cloud_msg){
+    clock_t start, end;
+    start = clock();
     // 1.Msg to pointcloud
     pcl::PointCloud<VPoint>::Ptr laserCloudIn (new pcl::PointCloud<VPoint>);
     pcl::fromROSMsg(*in_cloud_msg, *laserCloudIn);
@@ -259,12 +261,12 @@ void GroundPlaneFit::velodyne_callback_(const sensor_msgs::PointCloud2ConstPtr& 
     }
     laserCloudIn->points.erase(laserCloudIn->points.begin(),it);
 
-    // // Chop off points that are more than 50m away from the sensor
-    // pcl::PassThrough<VPoint> pass;
-    // pass.setInputCloud(laserCloudIn);
-    // pass.setFilterFieldName ("x");
-    // pass.setFilterLimits (-50.0, 50.0);
-    // pass.filter (*laserCloudIn);
+    // Chop off points that are more than 50m away from the sensor
+    pcl::PassThrough<VPoint> pass;
+    pass.setInputCloud(laserCloudIn);
+    pass.setFilterFieldName ("x");
+    pass.setFilterLimits (-50.0, 50.0);
+    pass.filter (*laserCloudIn);
 
 
     pcl::PointCloud<VPoint> not_ground_pc;
@@ -330,7 +332,10 @@ void GroundPlaneFit::velodyne_callback_(const sensor_msgs::PointCloud2ConstPtr& 
     groundless_msg.header.stamp = in_cloud_msg->header.stamp;
     groundless_msg.header.frame_id = in_cloud_msg->header.frame_id;
     groundless_points_pub_.publish(groundless_msg);
-    
+
+    end = clock();
+    float runTime = ((float) (end - start)) / CLOCKS_PER_SEC;
+    ROS_INFO("grond palne fit: %f seconds\n", runTime);   
 }
 
 int main(int argc, char **argv)

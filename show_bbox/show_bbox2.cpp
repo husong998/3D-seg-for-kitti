@@ -4,32 +4,16 @@
 #include <pcl_ros/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <velodyne_pointcloud/point_types.h>
 
 #define TH_UP   15
 #define TH_DOWN 0.2
 
-struct PointXYZIRL
-{
-  PCL_ADD_POINT4D;                    // quad-word XYZ
-  float    intensity;                 ///< laser intensity reading
-  uint16_t ring;                      ///< laser ring number
-  uint16_t label;                     ///< point label
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW     // ensure proper alignment
-};
-
-POINT_CLOUD_REGISTER_POINT_STRUCT(PointXYZIRL,
-                                  (float, x, x)
-                                  (float, y, y)
-                                  (float, z, z)
-                                  (float, intensity, intensity)
-                                  (uint16_t, ring, ring)
-                                  (uint16_t, label, label))
-
-#define SLRPointXYZIRL PointXYZIRL
+#define SLRPointXYZIRL velodyne_pointcloud::PointXYZIR
 
 bool point_cmp(SLRPointXYZIRL a, SLRPointXYZIRL b)
 {
-	return a.label<b.label;
+	return a.intensity<b.intensity;
 }
 
 bool isvalid(jsk_recognition_msgs::BoundingBox box)
@@ -56,8 +40,8 @@ private:
 
 pub_bbox::pub_bbox():nh_("~")
 {
-	sub_ = nh_.subscribe("/slr", 110, &pub_bbox::callback_, this);
-	bbox_pub_ = nh_.advertise<jsk_recognition_msgs::BoundingBoxArray>("/bboxes", 110, true);
+	sub_ = nh_.subscribe("/bfs_run", 110, &pub_bbox::callback_, this);
+	bbox_pub_ = nh_.advertise<jsk_recognition_msgs::BoundingBoxArray>("/bboxes2", 110, true);
 }
 
 void pub_bbox::callback_(sensor_msgs::PointCloud2 cloud_in_msg)
@@ -75,7 +59,7 @@ void pub_bbox::callback_(sensor_msgs::PointCloud2 cloud_in_msg)
     for (int i=0; i < cloud_in_pcl.size(); i++)
     {
     	current_point = cloud_in_pcl.points[i];
-    	if (current_bbox.label!=current_point.label)
+    	if (current_bbox.label!=current_point.intensity)
     	{
     		current_bbox.pose.position.x = (maxx + minx)/2;
     		current_bbox.pose.position.y = (maxy + miny)/2;
@@ -87,7 +71,7 @@ void pub_bbox::callback_(sensor_msgs::PointCloud2 cloud_in_msg)
     		if (isvalid(current_bbox))
     		bboxes_msg.boxes.push_back(current_bbox);
 
-    		current_bbox.label=current_point.label;
+    		current_bbox.label=current_point.intensity;
     		// current_bbox.pose.position.x = 0;
     		// current_bbox.pose.position.y = 0;
     		// current_bbox.pose.position.z = 0;
@@ -115,7 +99,7 @@ void pub_bbox::callback_(sensor_msgs::PointCloud2 cloud_in_msg)
 
 int main(int argc, char *argv[])
 {
-  	ros::init(argc, argv, "show_bbox");
+  	ros::init(argc, argv, "show_bbox2");
   	pub_bbox clusters;
   	ros::spin();
 	return 0;

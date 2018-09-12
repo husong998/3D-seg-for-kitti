@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(show_bbox)
+project(new_seg)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+# add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -11,11 +11,12 @@ find_package(catkin REQUIRED COMPONENTS
 	roscpp
 	pcl_ros
 	pcl_conversions
-	jsk_recognition_msgs
+	sensor_msgs
+	std_msgs
 	)
 
-find_package(PCL 1.8 REQUIRED)
-
+find_package(OpenCV REQUIRED)
+find_package(PCL 1.3 REQUIRED)
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -107,10 +108,8 @@ find_package(PCL 1.8 REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES show_bbox
- CATKIN_DEPENDS 
- sensor_msgs
- jsk_recognition_msgs
+#  LIBRARIES new_seg
+#  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
 
@@ -122,13 +121,13 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
 # include
-Eigen
 ${catkin_INCLUDE_DIRS}
+${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/show_bbox.cpp
+#   src/${PROJECT_NAME}/new_seg.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -139,7 +138,7 @@ ${catkin_INCLUDE_DIRS}
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME}_node show_bbox.cpp)
+add_executable(${PROJECT_NAME}_node new_seg_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -154,20 +153,10 @@ add_executable(${PROJECT_NAME}_node show_bbox.cpp)
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
-  ${PCL_LIBRARIES}
+	${PCL_LIBRARIES}
+  ${OpenCV_LIBS}
 )
 
-add_executable(${PROJECT_NAME}_node1 show_bbox1.cpp)
-target_link_libraries(${PROJECT_NAME}_node1
-  ${catkin_LIBRARIES}
-  ${PCL_LIBRARIES}
-)
-
-add_executable(${PROJECT_NAME}_node2 show_bbox2.cpp)
-target_link_libraries(${PROJECT_NAME}_node2
-  ${catkin_LIBRARIES}
-  ${PCL_LIBRARIES}
-)
 #############
 ## Install ##
 #############
@@ -208,7 +197,7 @@ target_link_libraries(${PROJECT_NAME}_node2
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_show_bbox.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_new_seg.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
