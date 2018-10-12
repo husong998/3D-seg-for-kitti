@@ -111,7 +111,7 @@ GroundPlaneFit::GroundPlaneFit():node_handle_("~"){
     node_handle_.param("num_seg", num_seg_, 10);
     ROS_INFO("Num of Segments Forward: %d", num_seg_);
 
-    node_handle_.param("num_seg_y", num_seg_y_, 5);
+    node_handle_.param("num_seg_y", num_seg_y_, 1);
     ROS_INFO("Num of Segments Left-right: %d", num_seg_y_);
 
     node_handle_.param("num_iter", num_iter_, 3);
